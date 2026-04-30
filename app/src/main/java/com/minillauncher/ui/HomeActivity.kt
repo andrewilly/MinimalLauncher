@@ -355,10 +355,9 @@ class HomeActivity : AppCompatActivity() {
             PreferencesManager.THEME_DARK -> setTheme(R.style.Theme_MinimalLauncher)
             PreferencesManager.THEME_WALLPAPER -> setTheme(R.style.Theme_MinimalLauncher_Transparent)
             PreferencesManager.THEME_SYSTEM -> {
-                val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                    == android.content.res.Configuration.UI_MODE_NIGHT_YES
-                if (isNight) setTheme(R.style.Theme_MinimalLauncher)
-                else setTheme(R.style.Theme_MinimalLauncher_Transparent)
+                val nightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                val isNight = nightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                if (isNight) setTheme(R.style.Theme_MinimalLauncher) else setTheme(R.style.Theme_MinimalLauncher_Transparent)
             }
             else -> setTheme(R.style.Theme_MinimalLauncher_Transparent)
         }

@@ -39,7 +39,7 @@ object ClockUtils {
                 val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                 val scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                 val status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-                val pct = if (level >= 0 && scale > 0) Math.round(level * 100.0 / scale) else -1
+                val pct = if (level >= 0 && scale > 0) Math.round(level * 100.0 / scale).toInt() else -1
                 val charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                                status == BatteryManager.BATTERY_STATUS_FULL
                 BatteryInfo(percentage = pct, isCharging = charging)

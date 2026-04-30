@@ -7,6 +7,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.minillauncher.BuildConfig
 import com.minillauncher.R
 import com.minillauncher.utils.PreferencesManager
 import com.minillauncher.utils.dp
@@ -41,7 +42,7 @@ class SettingsActivity : AppCompatActivity() {
                         getString(R.string.home_app_all) to PreferencesManager.HOME_APP_COUNT_ALL,
                         "4" to 4, "8" to 8, "12" to 12, "16" to 16, "24" to 24, "32" to 32
                     )
-                ) { prefs.setHomeAppCount(it as Int) })
+                ) { prefs.setHomeAppCount(it as Int) }
 
                 // ===== APPEARANCE =====
                 addView(makeSectionHeader(getString(R.string.appearance)))
@@ -56,15 +57,15 @@ class SettingsActivity : AppCompatActivity() {
                         getString(R.string.theme_dark) to PreferencesManager.THEME_DARK,
                         getString(R.string.theme_light) to PreferencesManager.THEME_LIGHT,
                         getString(R.string.theme_system) to PreferencesManager.THEME_SYSTEM
-                    )) { prefs.setTheme(it) })
+                    )) { prefs.setTheme(it as String) })
 
                 // ===== GESTURES =====
                 addView(makeSectionHeader(getString(R.string.gestures)))
-                addView(makeSelector(getString(R.string.swipe_left), getActionLabel(prefs.getSwipeLeftAction()), getActionOptions()) { prefs.setSwipeLeftAction(it) })
-                addView(makeSelector(getString(R.string.swipe_right), getActionLabel(prefs.getSwipeRightAction()), getActionOptions()) { prefs.setSwipeRightAction(it) })
-                addView(makeSelector(getString(R.string.swipe_up), getActionLabel(prefs.getSwipeUpAction()), getActionOptions()) { prefs.setSwipeUpAction(it) })
-                addView(makeSelector(getString(R.string.swipe_down), getActionLabel(prefs.getSwipeDownAction()), getActionOptions()) { prefs.setSwipeDownAction(it) })
-                addView(makeSelector(getString(R.string.double_tap), getActionLabel(prefs.getDoubleTapAction()), getActionOptions()) { prefs.setDoubleTapAction(it) })
+                addView(makeSelector(getString(R.string.swipe_left), getActionLabel(prefs.getSwipeLeftAction()), getActionOptions()) { prefs.setSwipeLeftAction(it as String) })
+                addView(makeSelector(getString(R.string.swipe_right), getActionLabel(prefs.getSwipeRightAction()), getActionOptions()) { prefs.setSwipeRightAction(it as String) })
+                addView(makeSelector(getString(R.string.swipe_up), getActionLabel(prefs.getSwipeUpAction()), getActionOptions()) { prefs.setSwipeUpAction(it as String) })
+                addView(makeSelector(getString(R.string.swipe_down), getActionLabel(prefs.getSwipeDownAction()), getActionOptions()) { prefs.setSwipeDownAction(it as String) })
+                addView(makeSelector(getString(R.string.double_tap), getActionLabel(prefs.getDoubleTapAction()), getActionOptions()) { prefs.setDoubleTapAction(it as String) })
 
                 // ===== ADVANCED =====
                 addView(makeSectionHeader("Avanzate"))
