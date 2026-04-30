@@ -4,12 +4,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
-import androidx.core.content.pm.ShortcutInfoCompat
+import android.os.Build
 import java.util.Locale
 
 /**
  * Data class representing an installed application.
- * Holds all the info needed to display and launch an app.
  */
 data class AppInfo(
     val label: CharSequence,
@@ -22,7 +21,6 @@ data class AppInfo(
     val componentName: ComponentName
         get() = ComponentName(packageName, className)
 
-    /** First letter for alphabetical grouping (locale-aware) */
     val sortLetter: Char
         get() = label.toString().uppercase(Locale.getDefault()).firstOrNull() ?: '#'
 
@@ -38,3 +36,21 @@ data class AppInfo(
         return result
     }
 }
+
+/**
+ * Capitalize only the first letter of each word.
+ * e.g. "GOOGLE CHROME" → "Google Chrome", "telegram" → "Telegram"
+ */
+fun CharSequence.capitalizeFirstLetter(): String {
+    if (this.isEmpty()) return this.toString()
+    return this.toString().split(" ").joinToString(" ") { word ->
+        if (word.isEmpty()) word
+        else word.substring(0, 1).uppercase(Locale.getDefault()) +
+             word.substring(1).lowercase(Locale.getDefault())
+    }
+}
+
+/**
+ * Convert dp to pixels.
+ */
+fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

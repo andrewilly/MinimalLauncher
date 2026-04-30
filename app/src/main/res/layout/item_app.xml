@@ -4,7 +4,7 @@
     android:id="@+id/text_app_name"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:background="?attr/selectableItemBackgroundBorderless"
     android:clickable="true"
     android:focusable="true"
     android:ellipsize="end"

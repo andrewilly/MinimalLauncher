@@ -7,11 +7,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
-import java.util.Locale
+import com.minillauncher.utils.capitalizeFirstLetter
 
 /**
- * Olauncher-style adapter: just text, no icons.
- * Displays app names in a vertical list with only first letter capitalized.
+ * Home screen adapter: app names only, no icons. Olauncher style.
  */
 class HomeAppAdapter(
     private val apps: MutableList<AppInfo>,
@@ -20,9 +19,7 @@ class HomeAppAdapter(
 ) : RecyclerView.Adapter<HomeAppAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_app, parent, false)
-        return ViewHolder(view)
+        return ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_app, parent, false))
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -41,28 +38,15 @@ class HomeAppAdapter(
         private val textName: TextView = itemView.findViewById(R.id.text_app_name)
 
         fun bind(app: AppInfo) {
-            // Show name with only first letter capitalized
-            textName.text = capitalizeFirstLetter(app.label.toString())
-            textName.setOnClickListener { onAppClick(app) }
+            textName.text = app.label.capitalizeFirstLetter()
+            itemView.setOnClickListener { onAppClick(app) }
             if (onAppLongClick != null) {
-                textName.setOnLongClickListener {
-                    onAppLongClick.invoke(app, textName)
+                itemView.setOnLongClickListener {
+                    itemView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                    onAppLongClick.invoke(app, itemView)
                     true
                 }
             }
-        }
-    }
-
-    /**
-     * Capitalize only the first letter of each word, keep the rest lowercase.
-     * e.g., "GOOGLE CHROME" -> "Google Chrome", "telegram" -> "Telegram"
-     */
-    private fun capitalizeFirstLetter(text: String): String {
-        if (text.isEmpty()) return text
-        return text.split(" ").joinToString(" ") { word ->
-            if (word.isEmpty()) word
-            else word.substring(0, 1).uppercase(Locale.getDefault()) +
-                 word.substring(1).lowercase(Locale.getDefault())
         }
     }
 }

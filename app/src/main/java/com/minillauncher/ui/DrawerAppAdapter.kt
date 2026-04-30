@@ -7,10 +7,11 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
-import java.util.Locale
+import com.minillauncher.utils.capitalizeFirstLetter
 
 /**
- * Olauncher-style drawer adapter: text with first letter capitalized, no icons.
+ * Drawer adapter: alphabetical app list with headers.
+ * FIX: Click and long-click handlers properly wired.
  */
 class DrawerAppAdapter(
     private val apps: MutableList<AppInfo>,
@@ -70,23 +71,14 @@ class DrawerAppAdapter(
         private val tv: TextView = v.findViewById(R.id.text_app_name)
 
         fun bind(app: AppInfo, click: (AppInfo) -> Unit, longClick: ((AppInfo, View) -> Unit)?) {
-            // Capitalize only first letter
-            tv.text = capitalizeFirstLetter(app.label.toString())
+            tv.text = app.label.capitalizeFirstLetter()
             itemView.setOnClickListener { click(app) }
             if (longClick != null) {
                 itemView.setOnLongClickListener {
+                    itemView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
                     longClick.invoke(app, itemView)
                     true
                 }
-            }
-        }
-
-        private fun capitalizeFirstLetter(text: String): String {
-            if (text.isEmpty()) return text
-            return text.split(" ").joinToString(" ") { word ->
-                if (word.isEmpty()) word
-                else word.substring(0, 1).uppercase(Locale.getDefault()) +
-                     word.substring(1).lowercase(Locale.getDefault())
             }
         }
     }

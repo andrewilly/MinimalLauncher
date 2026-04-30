@@ -12,6 +12,8 @@ import java.util.Locale
 
 object AppUtils {
 
+    private const val TAG = "AppUtils"
+
     fun loadLaunchableApps(context: Context): List<AppInfo> {
         val packageManager = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -22,18 +24,18 @@ object AppUtils {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 packageManager.queryIntentActivities(
                     intent,
-                    PackageManager.ResolveInfoFlags.of(0) // no special flags
+                    PackageManager.ResolveInfoFlags.of(0)
                 )
             } else {
                 @Suppress("DEPRECATION")
                 packageManager.queryIntentActivities(intent, 0)
             }
         } catch (e: Exception) {
-            Log.e("AppUtils", "Error loading apps: ${e.message}")
+            Log.e(TAG, "Error loading apps: ${e.message}")
             emptyList()
         }
 
-        Log.d("AppUtils", "Found ${resolveInfos.size} launchable apps")
+        Log.d(TAG, "Found ${resolveInfos.size} launchable apps")
 
         return resolveInfos
             .filter { it.activityInfo.packageName != context.packageName }
@@ -46,12 +48,19 @@ object AppUtils {
                         className = info.name,
                         icon = info.loadIcon(packageManager),
                         firstInstallTime = try {
-                            @Suppress("DEPRECATION")
-                            packageManager.getPackageInfo(info.packageName, 0).firstInstallTime
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                packageManager.getPackageInfo(
+                                    info.packageName,
+                                    PackageManager.PackageInfoFlags.of(0)
+                                ).firstInstallTime
+                            } else {
+                                @Suppress("DEPRECATION")
+                                packageManager.getPackageInfo(info.packageName, 0).firstInstallTime
+                            }
                         } catch (_: PackageManager.NameNotFoundException) { 0L }
                     )
                 } catch (e: Exception) {
-                    Log.w("AppUtils", "Skipping ${resolveInfo.activityInfo.packageName}: ${e.message}")
+                    Log.w(TAG, "Skipping ${resolveInfo.activityInfo.packageName}: ${e.message}")
                     null
                 }
             }
@@ -70,13 +79,6 @@ object AppUtils {
     fun openAppSettings(context: Context, packageName: String) {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.parse("package:$packageName")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        context.startActivity(intent)
-    }
-
-    fun openLauncherSettings(context: Context) {
-        val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         context.startActivity(intent)

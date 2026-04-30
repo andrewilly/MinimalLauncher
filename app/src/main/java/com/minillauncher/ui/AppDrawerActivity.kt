@@ -1,19 +1,19 @@
 package com.minillauncher.ui
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.minillauncher.R
-import com.minillauncher.utils.AppInfo
-import com.minillauncher.utils.AppUtils
-import com.minillauncher.utils.PreferencesManager
+import com.minillauncher.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,7 +51,11 @@ class AppDrawerActivity : AppCompatActivity() {
 
         // Auto-show keyboard
         if (prefs.autoShowKeyboard()) {
-            editSearch.postDelayed({ editSearch.requestFocus() }, 300)
+            editSearch.postDelayed({
+                editSearch.requestFocus()
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(editSearch, InputMethodManager.SHOW_IMPLICIT)
+            }, 300)
         }
 
         // Search filtering
@@ -63,6 +67,11 @@ class AppDrawerActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { filterApps(s.toString()) }
             override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+
+        // FIX: Use OnBackPressedDispatcher instead of deprecated onBackPressed
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { finishAfterTransition() }
         })
 
         loadApps()
@@ -92,20 +101,14 @@ class AppDrawerActivity : AppCompatActivity() {
     private fun showAppMenu(app: AppInfo, anchorView: View) {
         val popup = android.widget.PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.menu_app_long_press, popup.menu)
-
-        // Add "Add to home" / "Remove from home" option
         val isPinned = prefs.isAppPinnedToHome(app.packageName)
-        popup.menu.add(
-            0, 100, 0,
+        popup.menu.add(0, 100, 0,
             if (isPinned) getString(R.string.menu_remove_from_home) else getString(R.string.menu_add_to_home)
         )
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.menu_app_info -> {
-                    AppUtils.openAppSettings(this, app.packageName)
-                    true
-                }
+                R.id.menu_app_info -> { AppUtils.openAppSettings(this, app.packageName); true }
                 R.id.menu_hide_app -> {
                     prefs.toggleAppHidden(app.packageName)
                     loadApps()
@@ -113,12 +116,17 @@ class AppDrawerActivity : AppCompatActivity() {
                     true
                 }
                 R.id.menu_uninstall -> {
-                    startActivity(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:${app.packageName}")).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+                    startActivity(Intent(Intent.ACTION_DELETE,
+                        android.net.Uri.parse("package:${app.packageName}")).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        })
                     true
                 }
                 100 -> {
                     prefs.toggleAppOnHome(app.packageName)
-                    Toast.makeText(this, if (prefs.isAppPinnedToHome(app.packageName)) "Aggiunta a home" else "Rimossa da home", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this,
+                        if (prefs.isAppPinnedToHome(app.packageName)) "Aggiunta a home" else "Rimossa da home",
+                        Toast.LENGTH_SHORT).show()
                     true
                 }
                 else -> false
@@ -126,6 +134,4 @@ class AppDrawerActivity : AppCompatActivity() {
         }
         popup.show()
     }
-
-    override fun onBackPressed() { finishAfterTransition() }
 }
