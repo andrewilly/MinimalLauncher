@@ -92,7 +92,7 @@ object AppUtils {
                     null
                 }
             }
-            .sortedWith(compareBy { it.label.uppercase(Locale.getDefault()) })
+            .sortedWith(compareBy { it.label.toString().uppercase(Locale.getDefault()) })
     }
 
     fun launchApp(context: Context, appInfo: AppInfo) {
