@@ -42,7 +42,7 @@ class SettingsActivity : AppCompatActivity() {
                         getString(R.string.home_app_all) to PreferencesManager.HOME_APP_COUNT_ALL,
                         "4" to 4, "8" to 8, "12" to 12, "16" to 16, "24" to 24, "32" to 32
                     )
-                ) { prefs.setHomeAppCount(it as Int) }
+                ) { prefs.setHomeAppCount(it as Int) })
 
                 // ===== APPEARANCE =====
                 addView(makeSectionHeader(getString(R.string.appearance)))
