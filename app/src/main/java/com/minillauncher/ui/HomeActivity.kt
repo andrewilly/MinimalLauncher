@@ -67,20 +67,40 @@ class HomeActivity : AppCompatActivity() {
     private var touchStartY = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Set global crash handler to log errors
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            throwable.printStackTrace()
+            try {
+                val log = android.util.Log.getStackTraceString(throwable)
+                android.widget.Toast.makeText(
+                    this,
+                    "Errore: ${throwable.javaClass.simpleName}: ${throwable.message}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            } catch (e: Exception) { /* ignore */ }
+            // Let default handler kill the app
+            Thread.getDefaultUncaughtExceptionHandler()?.uncaughtException(thread, throwable)
+        }
+
         super.onCreate(savedInstanceState)
 
-        prefs = PreferencesManager(this)
-        applyTheme()
-        setContentView(R.layout.activity_home)
-        setupImmersiveMode()
+        try {
+            prefs = PreferencesManager(this)
+            applyTheme()
+            setContentView(R.layout.activity_home)
+            setupImmersiveMode()
 
-        initViews()
-        setupGestures()
-        setupBackPressed()
-        loadApps()
-        startClockUpdates()
+            initViews()
+            setupGestures()
+            setupBackPressed()
+            loadApps()
+            startClockUpdates()
 
-        handleIntent(intent)
+            handleIntent(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Errore init: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -417,8 +437,9 @@ class HomeActivity : AppCompatActivity() {
 
     private fun applyTheme() {
         when (prefs.getTheme()) {
-            PreferencesManager.THEME_LIGHT -> setTheme(android.R.style.Theme_Material_Light_NoActionBar)
-            PreferencesManager.THEME_DARK -> setTheme(android.R.style.Theme_Material_NoActionBar)
+            PreferencesManager.THEME_LIGHT -> setTheme(R.style.Theme_MinimalLauncher_Drawer)
+            PreferencesManager.THEME_DARK -> setTheme(R.style.Theme_MinimalLauncher)
+            PreferencesManager.THEME_WALLPAPER -> setTheme(R.style.Theme_MinimalLauncher_Transparent)
             else -> setTheme(R.style.Theme_MinimalLauncher)
         }
     }

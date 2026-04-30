@@ -1,25 +1,36 @@
 <resources>
     <!--
-        Base application theme for the launcher home screen.
-        Uses Theme.Material.Wallpaper (exists in SDK) which provides:
-        - Transparent background showing the device wallpaper
-        - Translucent status bar and navigation bar
-        We manually remove the action bar via windowNoTitle.
+        Base theme for the launcher home screen.
+        MUST extend Theme.AppCompat (not android:Theme.Material) because
+        all Activities extend AppCompatActivity.
+
+        We make the background transparent so the device wallpaper shows through.
     -->
-    <style name="Theme.MinimalLauncher" parent="android:Theme.Material.Wallpaper">
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowActionBar">false</item>
+    <style name="Theme.MinimalLauncher" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+    <!-- Transparent variant used for dark/wallpaper mode -->
+    <style name="Theme.MinimalLauncher.Transparent">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
     </style>
 
     <!-- App Drawer theme -->
-    <style name="Theme.MinimalLauncher.Drawer" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.MinimalLauncher.Drawer" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/drawer_background</item>
         <item name="android:windowAnimationStyle">@style/DrawerAnimation</item>
     </style>
 
     <!-- Settings theme -->
-    <style name="Theme.MinimalLauncher.Settings" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.MinimalLauncher.Settings" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/settings_background</item>
     </style>
 
