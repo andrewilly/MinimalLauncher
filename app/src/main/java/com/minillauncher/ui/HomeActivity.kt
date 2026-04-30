@@ -232,6 +232,12 @@ class HomeActivity : AppCompatActivity() {
         appsLoadJob?.cancel()
         appsLoadJob = lifecycleScope.launch {
             val apps = withContext(Dispatchers.IO) { AppUtils.loadLaunchableApps(this@HomeActivity) }
+
+            // Show feedback if no apps found
+            if (apps.isEmpty()) {
+                android.util.Log.w("MinimalLauncher", "No apps loaded!")
+            }
+
             allApps.clear()
             allApps.addAll(apps)
 

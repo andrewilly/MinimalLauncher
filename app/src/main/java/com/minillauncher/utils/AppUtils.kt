@@ -12,15 +12,19 @@ import java.util.Locale
 
 object AppUtils {
 
-    private const val TAG = "AppUtils"
+    private const val TAG = "MinimalLauncher"
 
     fun loadLaunchableApps(context: Context): List<AppInfo> {
         val packageManager = context.packageManager
+
+        Log.i(TAG, "Loading launchable apps...")
+
+        // Method 1: Standard queryIntentActivities
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
 
-        val resolveInfos: List<ResolveInfo> = try {
+        var resolveInfos: List<ResolveInfo> = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 packageManager.queryIntentActivities(
                     intent,
@@ -31,49 +35,77 @@ object AppUtils {
                 packageManager.queryIntentActivities(intent, 0)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading apps: ${e.message}")
+            Log.e(TAG, "Method 1 failed: ${e.message}")
             emptyList()
         }
 
-        Log.d(TAG, "Found ${resolveInfos.size} launchable apps")
+        Log.i(TAG, "Method 1 (queryIntentActivities): ${resolveInfos.size} apps")
+
+        // Method 2: Fallback — get installed packages directly
+        if (resolveInfos.isEmpty()) {
+            Log.w(TAG, "Method 1 returned empty, trying getInstalledPackages fallback...")
+            try {
+                val packages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    packageManager.getInstalledPackages(PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getInstalledPackages(0)
+                }
+
+                // Filter only packages that have a launcher activity
+                resolveInfos = packages.filterNotNull().mapNotNull { pkgInfo ->
+                    try {
+                        val launchIntent = packageManager.getLaunchIntentForPackage(pkgInfo.packageName)
+                        if (launchIntent != null) {
+                            ResolveInfo().apply {
+                                activityInfo = packageManager.getActivityInfo(launchIntent.component!!, 0)
+                            }
+                        } else null
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                Log.i(TAG, "Method 2 (getInstalledPackages): ${resolveInfos.size} apps")
+            } catch (e: Exception) {
+                Log.e(TAG, "Method 2 failed: ${e.message}")
+            }
+        }
+
+        if (resolveInfos.isEmpty()) {
+            Log.e(TAG, "CRITICAL: No apps found with either method!")
+            return emptyList()
+        }
 
         return resolveInfos
-            .filter { it.activityInfo.packageName != context.packageName }
+            .filter { it.activityInfo?.packageName != context.packageName }
             .mapNotNull { resolveInfo ->
                 try {
-                    val info = resolveInfo.activityInfo
+                    val info = resolveInfo.activityInfo ?: return@mapNotNull null
                     AppInfo(
-                        label = info.loadLabel(packageManager),
+                        label = info.loadLabel(packageManager).toString(),
                         packageName = info.packageName,
                         className = info.name,
-                        icon = info.loadIcon(packageManager),
-                        firstInstallTime = try {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                packageManager.getPackageInfo(
-                                    info.packageName,
-                                    PackageManager.PackageInfoFlags.of(0)
-                                ).firstInstallTime
-                            } else {
-                                @Suppress("DEPRECATION")
-                                packageManager.getPackageInfo(info.packageName, 0).firstInstallTime
-                            }
-                        } catch (_: PackageManager.NameNotFoundException) { 0L }
+                        icon = info.loadIcon(packageManager)
                     )
                 } catch (e: Exception) {
-                    Log.w(TAG, "Skipping ${resolveInfo.activityInfo.packageName}: ${e.message}")
+                    Log.w(TAG, "Skipping ${resolveInfo.activityInfo?.packageName}: ${e.message}")
                     null
                 }
             }
-            .sortedWith(compareBy { it.label.toString().uppercase(Locale.getDefault()) })
+            .sortedWith(compareBy { it.label.uppercase(Locale.getDefault()) })
     }
 
     fun launchApp(context: Context, appInfo: AppInfo) {
-        val intent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-            component = appInfo.componentName
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+        try {
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                component = appInfo.componentName
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch ${appInfo.packageName}: ${e.message}")
         }
-        context.startActivity(intent)
     }
 
     fun openAppSettings(context: Context, packageName: String) {
