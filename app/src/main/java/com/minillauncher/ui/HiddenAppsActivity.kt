@@ -1,5 +1,6 @@
 package com.minillauncher.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -7,9 +8,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
 import com.minillauncher.utils.AppUtils
 import com.minillauncher.utils.PreferencesManager
@@ -19,13 +22,13 @@ import kotlinx.coroutines.withContext
 
 /**
  * Activity to manage hidden apps.
- * Shows a list of all apps with toggle to hide/unhide each.
  */
 class HiddenAppsActivity : AppCompatActivity() {
 
     private lateinit var prefs: PreferencesManager
     private val allApps = mutableListOf<AppInfo>()
     private lateinit var adapter: HiddenAppsAdapter
+    private lateinit var recyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,26 +44,26 @@ class HiddenAppsActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(getColor(R.color.settings_background))
 
-            // Toolbar area
+            // Toolbar
             addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
-                setPadding(8.dp, 16.dp, 16.dp, 16.dp)
+                setPadding(dp(8), dp(16), dp(16), dp(16))
                 gravity = android.view.Gravity.CENTER_VERTICAL
 
-                val backButton = ImageView(context).apply {
+                val backBtn = ImageView(context).apply {
                     setImageResource(android.R.drawable.ic_menu_revert)
                     setColorFilter(getColor(R.color.text_primary))
-                    setPadding(8.dp, 8.dp, 8.dp, 8.dp)
+                    setPadding(dp(8), dp(8), dp(8), dp(8))
                     isClickable = true
                     setOnClickListener { finish() }
                 }
-                addView(backButton)
+                addView(backBtn)
 
                 addView(TextView(context).apply {
                     text = getString(R.string.hidden_apps)
                     textSize = 20f
                     setTextColor(getColor(R.color.text_primary))
-                    setPadding(12.dp, 0, 0, 0)
+                    setPadding(dp(12), 0, 0, 0)
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 })
             })
@@ -70,20 +73,23 @@ class HiddenAppsActivity : AppCompatActivity() {
                 text = getString(R.string.hidden_apps_description)
                 textSize = 14f
                 setTextColor(getColor(R.color.text_secondary))
-                setPadding(24.dp, 0, 24.dp, 16.dp)
+                setPadding(dp(24), 0, dp(24), dp(16))
             })
 
             // RecyclerView
-            val recyclerView = RecyclerView(context).apply {
+            recyclerView = RecyclerView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                )
                 layoutManager = LinearLayoutManager(context)
-                adapter = HiddenAppsAdapter(allApps, prefs) { packageName ->
+                adapter = HiddenAppsAdapter(allApps, prefs, this@HiddenAppsActivity) { packageName ->
                     Toast.makeText(
                         this@HiddenAppsActivity,
                         if (prefs.isAppHidden(packageName)) "App nascosta" else "App mostrata",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-                id = View.generateViewId()
             }
             addView(recyclerView)
             adapter = recyclerView.adapter as HiddenAppsAdapter
@@ -101,51 +107,56 @@ class HiddenAppsActivity : AppCompatActivity() {
         }
     }
 
-    private val Int.dp: Int
-        get() = (this * resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
 }
 
 /**
- * Simple adapter for the hidden apps list.
+ * Adapter for the hidden apps list.
  */
 class HiddenAppsAdapter(
     private val apps: MutableList<AppInfo>,
     private val prefs: PreferencesManager,
+    private val context: HiddenAppsActivity,
     private val onToggle: (String) -> Unit
 ) : RecyclerView.Adapter<HiddenAppsAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): ViewHolder {
-        val view = LinearLayout(parent.context).apply {
+        val container = LinearLayout(parent.context).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(24.dp, 12.dp, 24.dp, 12.dp)
+            val pad = dp(parent.context, 24)
+            setPadding(pad, dp(parent.context, 12), pad, dp(parent.context, 12))
             gravity = android.view.Gravity.CENTER_VERTICAL
             setBackgroundColor(parent.context.getColor(R.color.settings_item_background))
 
-            addView(ImageView(context).apply {
+            val icon = ImageView(parent.context).apply {
                 id = View.generateViewId()
                 scaleType = ImageView.ScaleType.FIT_CENTER
-                layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp)
-            })
+                layoutParams = LinearLayout.LayoutParams(dp(parent.context, 40), dp(parent.context, 40))
+            }
+            addView(icon)
 
-            addView(TextView(context).apply {
+            val label = TextView(parent.context).apply {
                 id = View.generateViewId()
                 textSize = 15f
-                setTextColor(context.getColor(R.color.text_primary))
+                setTextColor(parent.context.getColor(R.color.text_primary))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginStart = 16.dp
+                    marginStart = dp(parent.context, 16)
                 }
-            })
+            }
+            addView(label)
 
-            addView(android.widget.SwitchCompat(context).apply {
+            val toggle = SwitchCompat(parent.context).apply {
                 id = View.generateViewId()
-            })
+            }
+            addView(toggle)
         }
-        return ViewHolder(view)
+        return ViewHolder(container)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val app = apps[position]
-        holder.bind(app)
+        holder.bind(apps[position])
     }
 
     override fun getItemCount(): Int = apps.size
@@ -157,16 +168,9 @@ class HiddenAppsAdapter(
     }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val icon: ImageView = itemView.findViewById(itemView.findViewById<View>(android.R.id.icon)?.id ?: 1)
-        private val label: TextView
-        private val toggle: android.widget.SwitchCompat
-
-        init {
-            val children = (itemView as LinearLayout)
-            icon = children.getChildAt(0) as ImageView
-            label = children.getChildAt(1) as TextView
-            toggle = children.getChildAt(2) as android.widget.SwitchCompat
-        }
+        private val icon: ImageView = itemView as? ImageView ?: (itemView as LinearLayout).getChildAt(0) as ImageView
+        private val label: TextView = (itemView as LinearLayout).getChildAt(1) as TextView
+        private val toggle: SwitchCompat = (itemView as LinearLayout).getChildAt(2) as SwitchCompat
 
         fun bind(app: AppInfo) {
             icon.setImageDrawable(app.icon)
@@ -180,6 +184,7 @@ class HiddenAppsAdapter(
         }
     }
 
-    private val Int.dp: Int
-        get() = (this * resources.displayMetrics.density).toInt()
+    private fun dp(context: android.content.Context, value: Int): Int {
+        return (value * context.resources.displayMetrics.density).toInt()
+    }
 }

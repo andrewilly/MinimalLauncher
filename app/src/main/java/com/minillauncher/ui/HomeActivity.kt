@@ -1,16 +1,12 @@
 package com.minillauncher.ui
 
-import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.text.InputType
-import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -26,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
 import com.minillauncher.utils.AppUtils
 import com.minillauncher.utils.ClockUtils
@@ -66,7 +63,6 @@ class HomeActivity : AppCompatActivity() {
 
     // Swipe detection
     private val swipeThreshold = 150
-    private val swipeVelocityThreshold = 100
     private var touchStartX = 0f
     private var touchStartY = 0f
 
@@ -84,7 +80,6 @@ class HomeActivity : AppCompatActivity() {
         loadApps()
         startClockUpdates()
 
-        // Handle new intent when returning from another app
         handleIntent(intent)
     }
 
@@ -95,7 +90,6 @@ class HomeActivity : AppCompatActivity() {
 
     private fun handleIntent(intent: Intent) {
         if (intent.action == Intent.ACTION_MAIN) {
-            // User pressed home — dismiss search if open
             searchContainer.visibility = View.GONE
             editSearch.text.clear()
             editSearch.clearFocus()
@@ -187,7 +181,6 @@ class HomeActivity : AppCompatActivity() {
     private fun calculateSpanCount(): Int {
         val displayMetrics = resources.displayMetrics
         val dpWidth = displayMetrics.widthPixels / displayMetrics.density
-        // Aim for ~90dp per app icon
         return Math.max(4, Math.floor(dpWidth / 90.0).toInt())
     }
 
@@ -200,7 +193,6 @@ class HomeActivity : AppCompatActivity() {
         }
 
         rootContainer.setOnClickListener {
-            // Tap on empty space — dismiss search
             if (searchContainer.visibility == View.VISIBLE) {
                 searchContainer.visibility = View.GONE
                 editSearch.text.clear()
@@ -214,7 +206,6 @@ class HomeActivity : AppCompatActivity() {
                 touchStartX = event.rawX
                 touchStartY = event.rawY
 
-                // Double tap detection
                 val now = System.currentTimeMillis()
                 if (now - lastTapTime < doubleTapTimeout) {
                     handleDoubleTap()
@@ -225,25 +216,14 @@ class HomeActivity : AppCompatActivity() {
                 val deltaX = event.rawX - touchStartX
                 val deltaY = event.rawY - touchStartY
 
-                // Only handle swipes if search is not open
                 if (searchContainer.visibility != View.VISIBLE) {
                     if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                        // Horizontal swipe
                         if (Math.abs(deltaX) > swipeThreshold) {
-                            if (deltaX > 0) {
-                                handleSwipeRight()
-                            } else {
-                                handleSwipeLeft()
-                            }
+                            if (deltaX > 0) handleSwipeRight() else handleSwipeLeft()
                         }
                     } else {
-                        // Vertical swipe
                         if (Math.abs(deltaY) > swipeThreshold) {
-                            if (deltaY < 0) {
-                                handleSwipeUp()
-                            } else {
-                                handleSwipeDown()
-                            }
+                            if (deltaY < 0) handleSwipeUp() else handleSwipeDown()
                         }
                     }
                 }
@@ -252,8 +232,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleDoubleTap() {
-        val action = prefs.getDoubleTapAction()
-        when (action) {
+        when (prefs.getDoubleTapAction()) {
             PreferencesManager.ACTION_LOCK_SCREEN -> lockScreen()
             PreferencesManager.ACTION_OPEN_APP_DRAWER -> openAppDrawer()
             PreferencesManager.ACTION_OPEN_SEARCH -> openSearch()
@@ -261,8 +240,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleSwipeLeft() {
-        val action = prefs.getSwipeLeftAction()
-        when (action) {
+        when (prefs.getSwipeLeftAction()) {
             PreferencesManager.ACTION_OPEN_APP_DRAWER -> openAppDrawer()
             PreferencesManager.ACTION_SHOW_NOTIFICATIONS -> expandNotificationShade()
             PreferencesManager.ACTION_OPEN_SEARCH -> openSearch()
@@ -270,8 +248,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleSwipeRight() {
-        val action = prefs.getSwipeRightAction()
-        when (action) {
+        when (prefs.getSwipeRightAction()) {
             PreferencesManager.ACTION_OPEN_APP_DRAWER -> openAppDrawer()
             PreferencesManager.ACTION_SHOW_NOTIFICATIONS -> expandNotificationShade()
             PreferencesManager.ACTION_OPEN_SEARCH -> openSearch()
@@ -279,16 +256,14 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleSwipeUp() {
-        val action = prefs.getSwipeUpAction()
-        when (action) {
+        when (prefs.getSwipeUpAction()) {
             PreferencesManager.ACTION_OPEN_SEARCH -> openSearch()
             PreferencesManager.ACTION_OPEN_APP_DRAWER -> openAppDrawer()
         }
     }
 
     private fun handleSwipeDown() {
-        val action = prefs.getSwipeDownAction()
-        when (action) {
+        when (prefs.getSwipeDownAction()) {
             PreferencesManager.ACTION_SHOW_NOTIFICATIONS -> expandNotificationShade()
         }
     }
@@ -312,26 +287,21 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun lockScreen() {
         try {
-            val policyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
-            // Try device admin lock first (requires setup)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // Fallback: send KEYCODE_POWER simulation
-                // This won't work without special permissions, so show a toast
-                Toast.makeText(this, getString(R.string.action_lock_screen), Toast.LENGTH_SHORT).show()
+                val policyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+                policyManager.lockNow()
             }
         } catch (e: Exception) {
-            // Fallback: just turn off screen if possible
             Toast.makeText(this, getString(R.string.action_lock_screen), Toast.LENGTH_SHORT).show()
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun expandNotificationShade() {
         try {
-            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-            // Use the hidden expand notifications method
-            @Suppress("DEPRECATION")
             val statusBarService = getSystemService("statusbar")
             if (statusBarService != null) {
                 val methodName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -417,22 +387,6 @@ class HomeActivity : AppCompatActivity() {
             }
         }
 
-        // Force show icons on the menu
-        try {
-            val fields = popup.javaClass.declaredFields
-            for (field in fields) {
-                if ("mPopup" == field.name) {
-                    field.isAccessible = true
-                    val menuPopup = field.get(popup)
-                    menuPopup.javaClass.getDeclaredMethod("setForceShowIcon", Boolean::class.java)
-                        .invoke(menuPopup, true)
-                    break
-                }
-            }
-        } catch (e: Exception) {
-            // Ignore — icons won't show on some devices
-        }
-
         popup.show()
     }
 
@@ -495,7 +449,6 @@ class HomeActivity : AppCompatActivity() {
                     searchContainer.visibility = View.GONE
                     editSearch.text.clear()
                 }
-                // Otherwise, do nothing — we ARE the home screen
             }
         })
     }
