@@ -7,72 +7,66 @@ import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import java.util.Locale
 
-/**
- * Utility object for loading and managing installed applications.
- */
 object AppUtils {
 
-    /**
-     * Load all launchable apps installed on the device.
-     * Filters out this launcher itself from the list.
-     */
     fun loadLaunchableApps(context: Context): List<AppInfo> {
         val packageManager = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
 
-        val resolveInfos: List<ResolveInfo> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            packageManager.queryIntentActivities(
-                intent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+        val resolveInfos: List<ResolveInfo> = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.queryIntentActivities(
+                    intent,
+                    PackageManager.ResolveInfoFlags.of(0) // no special flags
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.queryIntentActivities(intent, 0)
+            }
+        } catch (e: Exception) {
+            Log.e("AppUtils", "Error loading apps: ${e.message}")
+            emptyList()
         }
+
+        Log.d("AppUtils", "Found ${resolveInfos.size} launchable apps")
 
         return resolveInfos
             .filter { it.activityInfo.packageName != context.packageName }
-            .map { resolveInfo ->
-                val activityInfo = resolveInfo.activityInfo
-                val label = activityInfo.loadLabel(packageManager)
-                val icon = activityInfo.loadIcon(packageManager)
-
-                AppInfo(
-                    label = label,
-                    packageName = activityInfo.packageName,
-                    className = activityInfo.name,
-                    icon = icon,
-                    firstInstallTime = try {
-                        @Suppress("DEPRECATION")
-                        packageManager.getPackageInfo(activityInfo.packageName, 0).firstInstallTime
-                    } catch (e: PackageManager.NameNotFoundException) {
-                        0L
-                    }
-                )
+            .mapNotNull { resolveInfo ->
+                try {
+                    val info = resolveInfo.activityInfo
+                    AppInfo(
+                        label = info.loadLabel(packageManager),
+                        packageName = info.packageName,
+                        className = info.name,
+                        icon = info.loadIcon(packageManager),
+                        firstInstallTime = try {
+                            @Suppress("DEPRECATION")
+                            packageManager.getPackageInfo(info.packageName, 0).firstInstallTime
+                        } catch (_: PackageManager.NameNotFoundException) { 0L }
+                    )
+                } catch (e: Exception) {
+                    Log.w("AppUtils", "Skipping ${resolveInfo.activityInfo.packageName}: ${e.message}")
+                    null
+                }
             }
-            .sortedWith(compareBy<AppInfo> { it.label.toString().uppercase(Locale.getDefault()) })
+            .sortedWith(compareBy { it.label.toString().uppercase(Locale.getDefault()) })
     }
 
-    /**
-     * Launch an application by its package and class name.
-     */
     fun launchApp(context: Context, appInfo: AppInfo) {
         val intent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
             component = appInfo.componentName
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
         }
         context.startActivity(intent)
     }
 
-    /**
-     * Open the system app settings page for a specific app.
-     */
     fun openAppSettings(context: Context, packageName: String) {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.parse("package:$packageName")
@@ -81,9 +75,6 @@ object AppUtils {
         context.startActivity(intent)
     }
 
-    /**
-     * Open the system settings page for this launcher.
-     */
     fun openLauncherSettings(context: Context) {
         val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK

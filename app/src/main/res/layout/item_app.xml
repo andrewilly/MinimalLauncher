@@ -1,33 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Single app item for the home grid -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/app_item_container"
+<!-- Olauncher-style: just text, no icon -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/text_app_name"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?attr/selectableItemBackground"
-    android:gravity="center_horizontal"
-    android:orientation="vertical"
-    android:padding="8dp">
-
-    <ImageView
-        android:id="@+id/image_app_icon"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:contentDescription="@string/app_icon"
-        android:scaleType="fitCenter" />
-
-    <TextView
-        android:id="@+id/text_app_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:gravity="center_horizontal"
-        android:maxLines="2"
-        android:textColor="@color/text_primary"
-        android:textSize="12sp"
-        android:visibility="visible" />
-
-</LinearLayout>
+    android:ellipsize="end"
+    android:gravity="center"
+    android:maxLines="1"
+    android:paddingVertical="14dp"
+    android:paddingHorizontal="12dp"
+    android:textAlignment="center"
+    android:textAllCaps="true"
+    android:textColor="@color/text_primary"
+    android:textSize="13sp"
+    android:fontFamily="sans-serif-medium"
+    android:letterSpacing="0.05" />

@@ -3,22 +3,16 @@ package com.minillauncher.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
-import java.util.Locale
 
 /**
- * Adapter for the app drawer list.
- * Shows apps in a list with optional alphabet headers.
+ * Olauncher-style drawer adapter: just text, no icons.
  */
 class DrawerAppAdapter(
     private val apps: MutableList<AppInfo>,
-    private val showLabels: Boolean = true,
-    private val iconScale: Float = 1.0f,
     private val showAlphabetHeaders: Boolean = true,
     private val onAppClick: (AppInfo) -> Unit,
     private val onAppLongClick: ((AppInfo, View) -> Unit)? = null
@@ -29,94 +23,52 @@ class DrawerAppAdapter(
         private const val TYPE_APP = 1
     }
 
-    private val displayItems = mutableListOf<DisplayItem>()
-
-    sealed class DisplayItem {
-        data class Header(val letter: String) : DisplayItem()
-        data class App(val appInfo: AppInfo) : DisplayItem()
-    }
+    private val items = mutableListOf<Item>()
+    sealed class Item { data class Header(val letter: String) : Item(); data class App(val info: AppInfo) : Item() }
 
     fun updateApps(newApps: List<AppInfo>) {
-        apps.clear()
-        apps.addAll(newApps)
-        buildDisplayItems()
+        apps.clear(); apps.addAll(newApps)
+        items.clear()
+        var cur: String? = null
+        for (app in apps) {
+            if (showAlphabetHeaders) {
+                val letter = app.sortLetter.uppercaseChar().toString()
+                if (letter != cur) { items.add(Item.Header(letter)); cur = letter }
+            }
+            items.add(Item.App(app))
+        }
         notifyDataSetChanged()
     }
 
-    private fun buildDisplayItems() {
-        displayItems.clear()
-        if (!showAlphabetHeaders) {
-            apps.forEach { displayItems.add(DisplayItem.App(it)) }
-            return
-        }
+    override fun getItemViewType(pos: Int) = if (items[pos] is Item.Header) TYPE_HEADER else TYPE_APP
 
-        var currentLetter: String? = null
-        for (app in apps) {
-            val letter = app.sortLetter.uppercaseChar().toString()
-            if (letter != currentLetter) {
-                displayItems.add(DisplayItem.Header(letter))
-                currentLetter = letter
-            }
-            displayItems.add(DisplayItem.App(app))
+    override fun onCreateViewHolder(parent: ViewGroup, vt: Int): RecyclerView.ViewHolder {
+        return if (vt == TYPE_HEADER) {
+            HeaderViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_alphabet_header, parent, false))
+        } else {
+            AppViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_app_drawer, parent, false))
         }
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return when (displayItems[position]) {
-            is DisplayItem.Header -> TYPE_HEADER
-            is DisplayItem.App -> TYPE_APP
+    override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
+        when (val it = items[pos]) {
+            is Item.Header -> (h as HeaderViewHolder).bind(it.letter)
+            is Item.App -> (h as AppViewHolder).bind(it.info)
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return when (viewType) {
-            TYPE_HEADER -> {
-                val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_alphabet_header, parent, false)
-                HeaderViewHolder(view)
-            }
-            else -> {
-                val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_app_drawer, parent, false)
-                AppViewHolder(view)
-            }
-        }
+    override fun getItemCount() = items.size
+
+    class HeaderViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+        private val tv: TextView = v.findViewById(R.id.text_alphabet_header)
+        fun bind(l: String) { tv.text = l }
     }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        when (val item = displayItems[position]) {
-            is DisplayItem.Header -> (holder as HeaderViewHolder).bind(item.letter)
-            is DisplayItem.App -> (holder as AppViewHolder).bind(item.appInfo)
-        }
-    }
-
-    override fun getItemCount(): Int = displayItems.size
-
-    inner class HeaderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val textHeader: TextView = itemView.findViewById(R.id.text_alphabet_header)
-        fun bind(letter: String) {
-            textHeader.text = letter
-        }
-    }
-
-    inner class AppViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val container: LinearLayout = itemView.findViewById(R.id.app_item_container)
-        private val icon: ImageView = itemView.findViewById(R.id.image_app_icon)
-        private val label: TextView = itemView.findViewById(R.id.text_app_name)
-
+    class AppViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+        private val tv: TextView = v.findViewById(R.id.text_app_name)
         fun bind(app: AppInfo) {
-            icon.setImageDrawable(app.icon)
-            label.text = app.label
-            label.visibility = if (showLabels) View.VISIBLE else View.GONE
-
-            container.setOnClickListener { onAppClick(app) }
-
-            if (onAppLongClick != null) {
-                container.setOnLongClickListener {
-                    onAppLongClick.invoke(app, container)
-                    true
-                }
-            }
+            tv.text = app.label
+            tv.setOnClickListener { /* will be set from outside */ }
         }
     }
 }

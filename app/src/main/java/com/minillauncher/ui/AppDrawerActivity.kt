@@ -20,14 +20,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-/**
- * Full app drawer showing all installed apps in an alphabetical list.
- */
 class AppDrawerActivity : AppCompatActivity() {
 
     private lateinit var prefs: PreferencesManager
     private lateinit var recyclerApps: RecyclerView
-    private lateinit var textDrawerTitle: TextView
+    private lateinit var editSearch: EditText
 
     private val allApps = mutableListOf<AppInfo>()
     private val filteredApps = mutableListOf<AppInfo>()
@@ -38,20 +35,13 @@ class AppDrawerActivity : AppCompatActivity() {
         prefs = PreferencesManager(this)
         setContentView(R.layout.activity_app_drawer)
 
-        initViews()
-        loadApps()
-    }
-
-    private fun initViews() {
-        textDrawerTitle = findViewById(R.id.text_drawer_title)
         recyclerApps = findViewById(R.id.recycler_drawer_apps)
+        editSearch = findViewById(R.id.edit_search)
 
         recyclerApps.layoutManager = LinearLayoutManager(this)
         adapter = DrawerAppAdapter(
             apps = filteredApps,
-            showLabels = prefs.showIconLabels(),
-            iconScale = 1.0f,
-            showAlphabetHeaders = prefs.showAlphabetHeaders(),
+            showAlphabetHeaders = true,
             onAppClick = { app ->
                 AppUtils.launchApp(this, app)
                 finishAfterTransition()
@@ -59,49 +49,51 @@ class AppDrawerActivity : AppCompatActivity() {
             onAppLongClick = { app, view -> showAppMenu(app, view) }
         )
         recyclerApps.adapter = adapter
+
+        // Search filtering
+        editSearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) { filterApps(editSearch.text.toString()); true }
+            else false
+        }
+        editSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { filterApps(s.toString()) }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+
+        loadApps()
     }
 
     private fun loadApps() {
         lifecycleScope.launch {
-            val apps = withContext(Dispatchers.IO) {
-                AppUtils.loadLaunchableApps(this@AppDrawerActivity)
-            }
-
-            val hiddenApps = prefs.getHiddenApps()
+            val apps = withContext(Dispatchers.IO) { AppUtils.loadLaunchableApps(this@AppDrawerActivity) }
+            val hidden = prefs.getHiddenApps()
             allApps.clear()
-            allApps.addAll(apps.filter { !hiddenApps.contains(it.packageName) })
-
+            allApps.addAll(apps.filter { !hidden.contains(it.packageName) })
             filteredApps.clear()
             filteredApps.addAll(allApps)
             adapter.updateApps(filteredApps)
         }
     }
 
+    private fun filterApps(query: String) {
+        val q = query.trim().lowercase(Locale.getDefault())
+        filteredApps.clear()
+        filteredApps.addAll(if (q.isEmpty()) allApps else allApps.filter {
+            it.label.toString().lowercase(Locale.getDefault()).contains(q)
+        })
+        adapter.updateApps(filteredApps)
+    }
+
     private fun showAppMenu(app: AppInfo, anchorView: View) {
         val popup = android.widget.PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.menu_app_long_press, popup.menu)
-
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.menu_app_info -> {
-                    AppUtils.openAppSettings(this, app.packageName)
-                    true
-                }
-                R.id.menu_hide_app -> {
-                    prefs.toggleAppHidden(app.packageName)
-                    loadApps()
-                    true
-                }
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.menu_app_info -> { AppUtils.openAppSettings(this, app.packageName); true }
+                R.id.menu_hide_app -> { prefs.toggleAppHidden(app.packageName); loadApps(); true }
                 R.id.menu_uninstall -> {
-                    try {
-                        val intent = Intent(Intent.ACTION_DELETE).apply {
-                            data = android.net.Uri.parse("package:${app.packageName}")
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        }
-                        startActivity(intent)
-                    } catch (e: Exception) {
-                        Toast.makeText(this, "Impossibile disinstallare", Toast.LENGTH_SHORT).show()
-                    }
+                    startActivity(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:${app.packageName}")).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
                     true
                 }
                 else -> false
@@ -110,7 +102,5 @@ class AppDrawerActivity : AppCompatActivity() {
         popup.show()
     }
 
-    override fun onBackPressed() {
-        finishAfterTransition()
-    }
+    override fun onBackPressed() { finishAfterTransition() }
 }
