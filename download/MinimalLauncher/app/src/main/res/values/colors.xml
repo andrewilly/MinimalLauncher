@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Color palette inspired by Olauncher minimalism -->
+    <color name="text_primary">#E0E0E0</color>
+    <color name="text_secondary">#888888</color>
+    <color name="text_hint">#666666</color>
+    <color name="accent">#6C9EFF</color>
+    <color name="accent_light">#B3CCFF</color>
+
+    <!-- Search overlay -->
+    <color name="search_overlay">#DD000000</color>
+    <color name="search_bar_bg">#1A1A2E</color>
+
+    <!-- Drawer -->
+    <color name="drawer_background">#F5F5F5</color>
+
+    <!-- Settings -->
+    <color name="settings_background">#FAFAFA</color>
+    <color name="settings_item_background">#FFFFFF</color>
+    <color name="settings_divider">#EEEEEE</color>
+
+    <!-- Alphabet header -->
+    <color name="alphabet_header">#1565C0</color>
+</resources>
