@@ -2,22 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permission to query all packages (needed for launcher to see installed apps) -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <!-- CRITICAL: On Android 11+ (API 30+), this tells the system we need to see
-         all apps with launcher intents. Without this, queryIntentActivities returns
-         an empty list and NO apps are shown. -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-    </queries>
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
     <application
         android:allowBackup="true"
@@ -33,10 +23,11 @@
         <activity
             android:name=".ui.HomeActivity"
             android:clearTaskOnLaunch="true"
+            android:configChanges="uiMode"
             android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
+            android:taskAffinity=""
             android:stateNotNeeded="true"
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
             <intent-filter>
@@ -52,7 +43,6 @@
             android:name=".ui.AppDrawerActivity"
             android:exported="false"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.MinimalLauncher.Drawer"
             android:windowSoftInputMode="adjustResize" />
 

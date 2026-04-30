@@ -372,7 +372,8 @@ class HomeActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     private fun setupImmersiveMode() {
         if (prefs.showStatusBar()) return
-        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        // Use FLAG_LAYOUT_NO_LIMITS like Olauncher for proper immersive mode
+        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false)
         } else {
