@@ -58,9 +58,9 @@ object AppUtils {
                             // Skip ourselves
                             if (pkg == context.packageName) continue
 
-                            val label = appInfo.label.toString()
+                            val label = launcherActivityInfo.label.toString()
                             val className = launcherActivityInfo.componentName.className
-                            val icon = appInfo.icon
+                            val icon = context.packageManager.getApplicationIcon(pkg)
                             val firstInstallTime = try {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                     context.packageManager.getPackageInfo(
@@ -94,7 +94,7 @@ object AppUtils {
         }
 
         // Sort alphabetically by label
-        apps.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+        apps.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label.toString() })
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.i(TAG, "Loaded ${apps.size} apps in ${elapsed}ms")
@@ -138,7 +138,7 @@ object AppUtils {
             }
         }
 
-        apps.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+        apps.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label.toString() })
         Log.i(TAG, "Fallback loaded ${apps.size} apps")
         return apps
     }
