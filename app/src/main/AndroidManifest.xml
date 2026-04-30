@@ -61,6 +61,13 @@
             android:label="@string/hidden_apps"
             android:theme="@style/Theme.MinimalLauncher.Settings" />
 
+        <!-- ==================== HOME APPS MANAGEMENT ==================== -->
+        <activity
+            android:name=".ui.HomeAppsActivity"
+            android:exported="false"
+            android:label="App in home"
+            android:theme="@style/Theme.MinimalLauncher.Settings" />
+
     </application>
 
 </manifest>

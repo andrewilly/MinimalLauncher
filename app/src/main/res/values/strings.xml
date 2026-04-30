@@ -5,8 +5,13 @@
     <!-- Home Screen -->
     <string name="search_apps">Cerca app…</string>
     <string name="widget_placeholder">Area widget (presto)</string>
-    <string name="hint_swipe_left">← App drawer</string>
-    <string name="hint_swipe_right">Notifiche →</string>
+    <string name="hint_swipe_left">← Scorri per app drawer</string>
+    <string name="hint_swipe_right">Scorri per notifiche →</string>
+
+    <!-- Home Screen Settings -->
+    <string name="home_screen">Schermata principale</string>
+    <string name="home_app_count">Numero di app in home</string>
+    <string name="home_app_all">Tutte</string>
 
     <!-- App Drawer -->
     <string name="all_apps">Tutte le app</string>
@@ -24,6 +29,7 @@
     <!-- Appearance Settings -->
     <string name="show_clock">Mostra orologio</string>
     <string name="show_date">Mostra data</string>
+    <string name="show_battery">Mostra batteria</string>
     <string name="use_24h_format">Formato 24 ore</string>
     <string name="date_format">Formato data</string>
     <string name="show_status_bar">Mostra barra di stato</string>
@@ -66,6 +72,8 @@
     <string name="menu_app_info">Info app</string>
     <string name="menu_hide_app">Nascondi app</string>
     <string name="menu_uninstall">Disinstalla</string>
+    <string name="menu_add_to_home">Aggiungi a home</string>
+    <string name="menu_remove_from_home">Rimuovi da home</string>
 
     <!-- Widget -->
     <string name="widgets">Widget</string>

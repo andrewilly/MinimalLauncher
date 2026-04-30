@@ -36,6 +36,9 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var rootContainer: FrameLayout
     private lateinit var textClock: TextView
     private lateinit var textDate: TextView
+    private lateinit var textBattery: TextView
+    private lateinit var dateBatterySep: TextView
+    private lateinit var dateBatteryRow: LinearLayout
     private lateinit var recyclerHomeApps: RecyclerView
     private lateinit var settingsTouchArea: View
     private lateinit var mainContent: LinearLayout
@@ -49,26 +52,56 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        prefs = PreferencesManager(this)
-        applyTheme()
-        setContentView(R.layout.activity_home)
-        setupImmersiveMode()
-        initViews()
-        setupGestures()
-        setupBackPressed()
-        loadApps()
-        startClockUpdates()
+        try {
+            prefs = PreferencesManager(this)
+            applyTheme()
+            setContentView(R.layout.activity_home)
+            setupImmersiveMode()
+            initViews()
+            setupGestures()
+            setupBackPressed()
+            loadApps()
+            startClockUpdates()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Errore avvio: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
-    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent) }
-    override fun onResume() { super.onResume(); setupImmersiveMode(); loadApps() }
-    override fun onDestroy() { super.onDestroy(); stopClockUpdates() }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // When returning to home, reload apps in case something changed
+        loadApps()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        setupImmersiveMode()
+        loadApps()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopClockUpdates()
+    }
+
+    /**
+     * FIX: Use dispatchTouchEvent to catch gestures globally.
+     * This ensures swipe/double-tap work even on the clock area
+     * and don't get blocked by the RecyclerView.
+     */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        gestureDetector?.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
+    }
 
     private fun initViews() {
         rootContainer = findViewById(R.id.root_container)
         mainContent = findViewById(R.id.main_content)
         textClock = findViewById(R.id.text_clock)
         textDate = findViewById(R.id.text_date)
+        textBattery = findViewById(R.id.text_battery)
+        dateBatterySep = findViewById(R.id.text_date_battery_sep)
+        dateBatteryRow = findViewById(R.id.date_battery_row)
         recyclerHomeApps = findViewById(R.id.recycler_home_apps)
         settingsTouchArea = findViewById(R.id.settings_touch_area)
 
@@ -87,8 +120,16 @@ class HomeActivity : AppCompatActivity() {
             true
         }
 
+        // Visibility based on preferences
         textClock.visibility = if (prefs.showClock()) View.VISIBLE else View.GONE
+        if (!prefs.showClock()) {
+            // If clock is hidden, also reduce top margin of date area
+            dateBatteryRow.setPadding(0, 0, 0, 0)
+        }
+
         textDate.visibility = if (prefs.showDate()) View.VISIBLE else View.GONE
+        textBattery.visibility = if (prefs.showBattery()) View.VISIBLE else View.GONE
+        dateBatterySep.visibility = if (prefs.showDate() && prefs.showBattery()) View.VISIBLE else View.GONE
     }
 
     // ==================== GESTURES ====================
@@ -112,20 +153,20 @@ class HomeActivity : AppCompatActivity() {
                 val threshold = 80f
 
                 if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+                    // Horizontal fling
                     if (dx < 0) handleSwipeLeft() else handleSwipeRight()
                     return true
                 } else if (Math.abs(dy) > threshold) {
-                    if (dy < 0) handleSwipeUp() else handleSwipeDown()
-                    return true
+                    // Vertical fling - only respond in the upper 35% of screen (clock area)
+                    val screenH = rootContainer.height.toFloat()
+                    if (e1.y < screenH * 0.35f) {
+                        if (dy < 0) handleSwipeUp() else handleSwipeDown()
+                        return true
+                    }
                 }
                 return false
             }
         })
-
-        // Swipe on the clock/date area (above the list)
-        mainContent.setOnTouchListener { _, event ->
-            gestureDetector?.onTouchEvent(event) ?: false
-        }
     }
 
     private fun handleSwipeLeft() {
@@ -164,7 +205,11 @@ class HomeActivity : AppCompatActivity() {
 
     @Suppress("DEPRECATION")
     private fun lockScreen() {
-        try { (getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).lockNow() } catch (_: Exception) {}
+        try {
+            (getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).lockNow()
+        } catch (_: Exception) {
+            Toast.makeText(this, "Servizio amministratore dispositivo non attivo", Toast.LENGTH_SHORT).show()
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -183,10 +228,41 @@ class HomeActivity : AppCompatActivity() {
     private fun loadApps() {
         lifecycleScope.launch {
             val apps = withContext(Dispatchers.IO) { AppUtils.loadLaunchableApps(this@HomeActivity) }
-            allApps.clear(); allApps.addAll(apps)
+            allApps.clear()
+            allApps.addAll(apps)
+
             val hidden = prefs.getHiddenApps()
+            val pinned = prefs.getPinnedHomeApps()
+            val maxCount = prefs.getHomeAppCount()
+            val nonHidden = apps.filter { !hidden.contains(it.packageName) }
+
             homeApps.clear()
-            homeApps.addAll(apps.filter { !hidden.contains(it.packageName) })
+
+            if (pinned.isNotEmpty()) {
+                // Show pinned apps first (in their saved order), then fill remaining with alphabetical
+                val pinnedApps = nonHidden.filter { pinned.contains(it.packageName) }
+                // Maintain the user's pinned order
+                val orderedPinned = pinned.mapNotNull { pkg ->
+                    pinnedApps.find { it.packageName == pkg }
+                }
+                homeApps.addAll(orderedPinned)
+
+                // Fill remaining slots with other apps
+                if (maxCount == PreferencesManager.HOME_APP_COUNT_ALL || homeApps.size < maxCount) {
+                    val remaining = nonHidden.filter { !pinned.contains(it.packageName) }
+                    val limit = if (maxCount == PreferencesManager.HOME_APP_COUNT_ALL) remaining.size
+                                else maxCount - homeApps.size
+                    homeApps.addAll(remaining.take(limit))
+                }
+            } else {
+                // No pinned apps: show first N alphabetical (pure Olauncher style)
+                if (maxCount == PreferencesManager.HOME_APP_COUNT_ALL) {
+                    homeApps.addAll(nonHidden)
+                } else {
+                    homeApps.addAll(nonHidden.take(maxCount))
+                }
+            }
+
             homeAdapter?.updateApps(homeApps)
         }
     }
@@ -194,6 +270,14 @@ class HomeActivity : AppCompatActivity() {
     private fun showAppMenu(app: AppInfo, anchorView: View) {
         val popup = android.widget.PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.menu_app_long_press, popup.menu)
+
+        // Add "Add to home" / "Remove from home" option
+        val isPinned = prefs.isAppPinnedToHome(app.packageName)
+        val menuItem = popup.menu.add(
+            0, 100, 0,
+            if (isPinned) getString(R.string.menu_remove_from_home) else getString(R.string.menu_add_to_home)
+        )
+
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.menu_app_info -> { AppUtils.openAppSettings(this, app.packageName); true }
@@ -202,23 +286,50 @@ class HomeActivity : AppCompatActivity() {
                     startActivity(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:${app.packageName}")).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
                     true
                 }
+                100 -> {
+                    prefs.toggleAppOnHome(app.packageName)
+                    loadApps()
+                    true
+                }
                 else -> false
             }
         }
         popup.show()
     }
 
-    // ==================== CLOCK ====================
+    // ==================== CLOCK + BATTERY ====================
 
     private fun startClockUpdates() {
         clockHandler = Handler(Looper.getMainLooper())
         updateClock()
-        clockRunnable = object : Runnable { override fun run() { updateClock(); clockHandler?.postDelayed(this, 1000) } }
+        clockRunnable = object : Runnable {
+            override fun run() {
+                updateClock()
+                clockHandler?.postDelayed(this, 1000)
+            }
+        }
         clockHandler?.post(clockRunnable!!)
     }
 
-    private fun stopClockUpdates() { clockRunnable?.let { clockHandler?.removeCallbacks(it) } }
-    private fun updateClock() { textClock.text = ClockUtils.getTime(this); textDate.text = ClockUtils.getDate(this) }
+    private fun stopClockUpdates() {
+        clockRunnable?.let { clockHandler?.removeCallbacks(it) }
+    }
+
+    private fun updateClock() {
+        textClock.text = ClockUtils.getTime(this)
+
+        if (prefs.showDate()) {
+            textDate.text = ClockUtils.getDate(this)
+        }
+        if (prefs.showBattery()) {
+            val batteryText = ClockUtils.getBatteryPercentage(this)
+            if (ClockUtils.isCharging(this)) {
+                textBattery.text = "$batteryText \u26A1" // battery + lightning emoji
+            } else {
+                textBattery.text = batteryText
+            }
+        }
+    }
 
     // ==================== THEME ====================
 
@@ -227,7 +338,7 @@ class HomeActivity : AppCompatActivity() {
             PreferencesManager.THEME_LIGHT -> setTheme(R.style.Theme_MinimalLauncher_Drawer)
             PreferencesManager.THEME_DARK -> setTheme(R.style.Theme_MinimalLauncher)
             PreferencesManager.THEME_WALLPAPER -> setTheme(R.style.Theme_MinimalLauncher_Transparent)
-            else -> setTheme(R.style.Theme_MinimalLauncher)
+            else -> setTheme(R.style.Theme_MinimalLauncher_Transparent)
         }
     }
 
@@ -235,13 +346,23 @@ class HomeActivity : AppCompatActivity() {
     private fun setupImmersiveMode() {
         if (prefs.showStatusBar()) return
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) window.setDecorFitsSystemWindows(false)
-        else window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+        } else {
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        }
     }
 
     private fun setupBackPressed() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {}
+            override fun handleOnBackPressed() {
+                // Do nothing - we are the home screen
+            }
         })
     }
 }

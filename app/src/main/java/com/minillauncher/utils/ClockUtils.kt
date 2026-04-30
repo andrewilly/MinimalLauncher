@@ -1,6 +1,9 @@
 package com.minillauncher.utils
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.content.SharedPreferences
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -8,7 +11,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Utility object for time and date formatting.
+ * Utility object for time, date, and battery formatting.
  * Configurable from preferences (12h/24h, date format).
  */
 object ClockUtils {
@@ -48,16 +51,38 @@ object ClockUtils {
     }
 
     /**
-     * Get greeting based on time of day.
+     * Get battery percentage as a string (e.g., "85%").
+     * Uses a sticky broadcast - no receiver needed.
      */
-    fun getGreeting(context: Context): String {
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        return when {
-            hour < 6 -> "🌙"
-            hour < 12 -> "☀️"
-            hour < 17 -> "🌤️"
-            hour < 21 -> "🌅"
-            else -> "🌙"
+    fun getBatteryPercentage(context: Context): String {
+        return try {
+            val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            if (batteryIntent != null) {
+                val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                val scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                if (level >= 0 && scale > 0) {
+                    val pct = Math.round(level * 100.0 / scale)
+                    "$pct%"
+                } else {
+                    ""
+                }
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    /**
+     * Check if device is currently charging.
+     */
+    fun isCharging(context: Context): Boolean {
+        return try {
+            val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) == BatteryManager.BATTERY_STATUS_CHARGING
+        } catch (e: Exception) {
+            false
         }
     }
 

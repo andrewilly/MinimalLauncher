@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -41,7 +40,7 @@ class AppDrawerActivity : AppCompatActivity() {
         recyclerApps.layoutManager = LinearLayoutManager(this)
         adapter = DrawerAppAdapter(
             apps = filteredApps,
-            showAlphabetHeaders = true,
+            showAlphabetHeaders = prefs.showAlphabetHeaders(),
             onAppClick = { app ->
                 AppUtils.launchApp(this, app)
                 finishAfterTransition()
@@ -49,6 +48,11 @@ class AppDrawerActivity : AppCompatActivity() {
             onAppLongClick = { app, view -> showAppMenu(app, view) }
         )
         recyclerApps.adapter = adapter
+
+        // Auto-show keyboard
+        if (prefs.autoShowKeyboard()) {
+            editSearch.postDelayed({ editSearch.requestFocus() }, 300)
+        }
 
         // Search filtering
         editSearch.setOnEditorActionListener { _, actionId, _ ->
@@ -88,12 +92,33 @@ class AppDrawerActivity : AppCompatActivity() {
     private fun showAppMenu(app: AppInfo, anchorView: View) {
         val popup = android.widget.PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.menu_app_long_press, popup.menu)
+
+        // Add "Add to home" / "Remove from home" option
+        val isPinned = prefs.isAppPinnedToHome(app.packageName)
+        popup.menu.add(
+            0, 100, 0,
+            if (isPinned) getString(R.string.menu_remove_from_home) else getString(R.string.menu_add_to_home)
+        )
+
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.menu_app_info -> { AppUtils.openAppSettings(this, app.packageName); true }
-                R.id.menu_hide_app -> { prefs.toggleAppHidden(app.packageName); loadApps(); true }
+                R.id.menu_app_info -> {
+                    AppUtils.openAppSettings(this, app.packageName)
+                    true
+                }
+                R.id.menu_hide_app -> {
+                    prefs.toggleAppHidden(app.packageName)
+                    loadApps()
+                    Toast.makeText(this, if (prefs.isAppHidden(app.packageName)) "App nascosta" else "App mostrata", Toast.LENGTH_SHORT).show()
+                    true
+                }
                 R.id.menu_uninstall -> {
                     startActivity(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:${app.packageName}")).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+                    true
+                }
+                100 -> {
+                    prefs.toggleAppOnHome(app.packageName)
+                    Toast.makeText(this, if (prefs.isAppPinnedToHome(app.packageName)) "Aggiunta a home" else "Rimossa da home", Toast.LENGTH_SHORT).show()
                     true
                 }
                 else -> false

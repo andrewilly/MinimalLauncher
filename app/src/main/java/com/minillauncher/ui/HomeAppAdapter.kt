@@ -7,10 +7,11 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
+import java.util.Locale
 
 /**
  * Olauncher-style adapter: just text, no icons.
- * Displays app names in a vertical list.
+ * Displays app names in a vertical list with only first letter capitalized.
  */
 class HomeAppAdapter(
     private val apps: MutableList<AppInfo>,
@@ -40,7 +41,8 @@ class HomeAppAdapter(
         private val textName: TextView = itemView.findViewById(R.id.text_app_name)
 
         fun bind(app: AppInfo) {
-            textName.text = app.label
+            // Show name with only first letter capitalized
+            textName.text = capitalizeFirstLetter(app.label.toString())
             textName.setOnClickListener { onAppClick(app) }
             if (onAppLongClick != null) {
                 textName.setOnLongClickListener {
@@ -48,6 +50,19 @@ class HomeAppAdapter(
                     true
                 }
             }
+        }
+    }
+
+    /**
+     * Capitalize only the first letter of each word, keep the rest lowercase.
+     * e.g., "GOOGLE CHROME" -> "Google Chrome", "telegram" -> "Telegram"
+     */
+    private fun capitalizeFirstLetter(text: String): String {
+        if (text.isEmpty()) return text
+        return text.split(" ").joinToString(" ") { word ->
+            if (word.isEmpty()) word
+            else word.substring(0, 1).uppercase(Locale.getDefault()) +
+                 word.substring(1).lowercase(Locale.getDefault())
         }
     }
 }

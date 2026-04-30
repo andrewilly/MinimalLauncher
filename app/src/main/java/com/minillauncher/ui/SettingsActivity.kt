@@ -2,7 +2,6 @@ package com.minillauncher.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -40,10 +39,27 @@ class SettingsActivity : AppCompatActivity() {
                     setPadding(dp(24), 0, dp(24), dp(24))
                 })
 
+                // ===== HOME SCREEN =====
+                addView(createSectionHeader(getString(R.string.home_screen)))
+                addView(createSelectorItem(
+                    getString(R.string.home_app_count),
+                    getHomeAppCountLabel(prefs.getHomeAppCount()),
+                    listOf(
+                        getString(R.string.home_app_all) to PreferencesManager.HOME_APP_COUNT_ALL,
+                        "4" to 4,
+                        "8" to 8,
+                        "12" to 12,
+                        "16" to 16,
+                        "24" to 24,
+                        "32" to 32
+                    )
+                ) { prefs.setHomeAppCount(it as Int) })
+
                 // ===== APPEARANCE =====
                 addView(createSectionHeader(getString(R.string.appearance)))
                 addView(createSwitchItem(getString(R.string.show_clock), prefs.showClock()) { prefs.setShowClock(it) })
                 addView(createSwitchItem(getString(R.string.show_date), prefs.showDate()) { prefs.setShowDate(it) })
+                addView(createSwitchItem(getString(R.string.show_battery), prefs.showBattery()) { prefs.setShowBattery(it) })
                 addView(createSwitchItem(getString(R.string.use_24h_format), prefs.use24h()) { prefs.setUse24h(it) })
                 addView(createSwitchItem(getString(R.string.show_icon_labels), prefs.showIconLabels()) { prefs.setShowIconLabels(it) })
                 addView(createSwitchItem(getString(R.string.show_alphabet_headers), prefs.showAlphabetHeaders()) { prefs.setShowAlphabetHeaders(it) })
@@ -68,6 +84,9 @@ class SettingsActivity : AppCompatActivity() {
                 addView(createNavigationItem(getString(R.string.hidden_apps), getString(R.string.hidden_apps_description)) {
                     startActivity(Intent(this@SettingsActivity, HiddenAppsActivity::class.java))
                 })
+                addView(createNavigationItem("App in home", "Gestisci le app fissate sulla schermata principale") {
+                    startActivity(Intent(this@SettingsActivity, HomeAppsActivity::class.java))
+                })
                 addView(createSwitchItem(getString(R.string.show_widget_area), prefs.showWidgetArea()) { prefs.setShowWidgetArea(it) })
 
                 // ===== ABOUT =====
@@ -79,7 +98,7 @@ class SettingsActivity : AppCompatActivity() {
                         Toast.makeText(this@SettingsActivity, "Impossibile aprire le impostazioni", Toast.LENGTH_SHORT).show()
                     }
                 })
-                addView(createInfoItem(getString(R.string.version), "1.0.0"))
+                addView(createInfoItem(getString(R.string.version), "1.1.0"))
             })
         }
     }
@@ -119,7 +138,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun createSelectorItem(title: String, currentValue: String, options: List<Pair<String, String>>, onSelect: (String) -> Unit): LinearLayout {
+    private fun createSelectorItem(title: String, currentValue: String, options: List<Pair<String, Any>>, onSelect: (Any) -> Unit): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(getColor(R.color.settings_item_background))
@@ -189,7 +208,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSelectorDialog(title: String, options: List<Pair<String, String>>, currentValue: String, onSelect: (String) -> Unit) {
+    private fun showSelectorDialog(title: String, options: List<Pair<String, Any>>, currentValue: String, onSelect: (Any) -> Unit) {
         val optionLabels = options.map { it.first }.toTypedArray()
         val currentIndex = optionLabels.indexOf(currentValue).coerceAtLeast(0)
 
@@ -201,6 +220,11 @@ class SettingsActivity : AppCompatActivity() {
             }
             .setNegativeButton("Annulla", null)
             .show()
+    }
+
+    private fun getHomeAppCountLabel(count: Int): String = when (count) {
+        PreferencesManager.HOME_APP_COUNT_ALL -> "Tutte"
+        else -> "$count app"
     }
 
     private fun getThemeLabel(theme: String): String = when (theme) {

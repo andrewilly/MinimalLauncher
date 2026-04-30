@@ -7,9 +7,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.minillauncher.R
 import com.minillauncher.utils.AppInfo
+import java.util.Locale
 
 /**
- * Olauncher-style drawer adapter: just text, no icons.
+ * Olauncher-style drawer adapter: text with first letter capitalized, no icons.
  */
 class DrawerAppAdapter(
     private val apps: MutableList<AppInfo>,
@@ -27,7 +28,8 @@ class DrawerAppAdapter(
     sealed class Item { data class Header(val letter: String) : Item(); data class App(val info: AppInfo) : Item() }
 
     fun updateApps(newApps: List<AppInfo>) {
-        apps.clear(); apps.addAll(newApps)
+        apps.clear()
+        apps.addAll(newApps)
         items.clear()
         var cur: String? = null
         for (app in apps) {
@@ -53,7 +55,7 @@ class DrawerAppAdapter(
     override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
         when (val it = items[pos]) {
             is Item.Header -> (h as HeaderViewHolder).bind(it.letter)
-            is Item.App -> (h as AppViewHolder).bind(it.info)
+            is Item.App -> (h as AppViewHolder).bind(it.info, onAppClick, onAppLongClick)
         }
     }
 
@@ -66,9 +68,26 @@ class DrawerAppAdapter(
 
     class AppViewHolder(v: View) : RecyclerView.ViewHolder(v) {
         private val tv: TextView = v.findViewById(R.id.text_app_name)
-        fun bind(app: AppInfo) {
-            tv.text = app.label
-            tv.setOnClickListener { /* will be set from outside */ }
+
+        fun bind(app: AppInfo, click: (AppInfo) -> Unit, longClick: ((AppInfo, View) -> Unit)?) {
+            // Capitalize only first letter
+            tv.text = capitalizeFirstLetter(app.label.toString())
+            itemView.setOnClickListener { click(app) }
+            if (longClick != null) {
+                itemView.setOnLongClickListener {
+                    longClick.invoke(app, itemView)
+                    true
+                }
+            }
+        }
+
+        private fun capitalizeFirstLetter(text: String): String {
+            if (text.isEmpty()) return text
+            return text.split(" ").joinToString(" ") { word ->
+                if (word.isEmpty()) word
+                else word.substring(0, 1).uppercase(Locale.getDefault()) +
+                     word.substring(1).lowercase(Locale.getDefault())
+            }
         }
     }
 }

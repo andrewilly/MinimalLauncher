@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
-    <!-- ===== MAIN: Clock + App Names ===== -->
+    <!-- ===== MAIN: Clock + Date + Battery + App Names ===== -->
     <LinearLayout
         android:id="@+id/main_content"
         android:layout_width="match_parent"
@@ -13,27 +13,57 @@
         android:gravity="center_horizontal"
         android:orientation="vertical">
 
-        <!-- Clock -->
+        <!-- Clock - molto grande stile Olauncher -->
         <TextView
             android:id="@+id/text_clock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
+            android:layout_marginTop="48dp"
             android:fontFamily="sans-serif-thin"
             android:textColor="@color/text_primary"
-            android:textSize="72sp"
+            android:textSize="96sp"
             android:letterSpacing="0.02" />
 
-        <!-- Date -->
-        <TextView
-            android:id="@+id/text_date"
+        <!-- Date + Battery row -->
+        <LinearLayout
+            android:id="@+id/date_battery_row"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="24dp"
-            android:fontFamily="sans-serif-light"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="20dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/text_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-light"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <!-- Separator dot -->
+            <TextView
+                android:id="@+id/text_date_battery_sep"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:fontFamily="sans-serif-light"
+                android:text="\u2022"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <!-- Battery percentage -->
+            <TextView
+                android:id="@+id/text_battery"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-light"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+        </LinearLayout>
 
         <!-- App names list (Olauncher style) -->
         <androidx.recyclerview.widget.RecyclerView
